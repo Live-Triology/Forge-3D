@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<!-- 
+  FORGE 3D — Converter & Viewer
+  Developed by triology
+  Contact: LiveTriology@gmail.com | Discord: @LiveTriology
+  Built entirely client-side using Three.js r134
+-->
+<title>FORGE 3D — Converter & Viewer by triology</title>
+
+<!-- Three.js r134 UMD — works on ALL browsers including iOS Safari, no module shims needed -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<!-- Addons as standalone scripts (non-module UMD pattern) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/STLLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/PLYLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/ColladaLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/exporters/GLTFExporter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/exporters/OBJExporter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/exporters/STLExporter.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#060810;--s1:#0b0e1a;--s2:#111523;--s3:#181d2e;
+  --border:#1c2236;--border2:#263050;
+  --accent:#00ffcc;--accent2:#6644ff;
+  --text:#cdd6f4;--dim:#4a5580;--dim2:#7a8ab8;
+  --ok:#23d18b;--err:#f7768e;--warn:#e0af68;
+  --r:8px;--r2:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,204,.012) 2px,rgba(0,255,204,.012) 4px);
+}
+
+/* HEADER */
+.hdr{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:56px;
+  border-bottom:1px solid var(--border);
+  background:rgba(6,8,16,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.hdr-logo{display:flex;align-items:center;gap:12px}
+.hdr-hex{
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  font-size:14px;color:#000;font-weight:700;flex-shrink:0;
+}
+.hdr-title{
+  font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;letter-spacing:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hdr-ver{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim2);letter-spacing:1px;margin-top:1px}
+.hdr-tabs{display:flex;gap:2px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:3px}
+.tab-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;
+  padding:5px 14px;border-radius:6px;border:none;
+  background:none;color:var(--dim2);cursor:pointer;transition:all .15s;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{background:linear-gradient(135deg,rgba(0,255,204,.15),rgba(102,68,255,.15));color:var(--accent);border:1px solid rgba(0,255,204,.2)}
+
+/* PANELS */
+.app-body{position:relative;z-index:1;min-height:calc(100vh - 56px)}
+.panel{position:absolute;inset:0;visibility:hidden;pointer-events:none;display:flex;flex-direction:column}
+.panel.active{position:relative;visibility:visible;pointer-events:auto}
+
+/* CONVERTER PANEL */
+.conv-panel{align-items:center;padding:36px 20px 60px;overflow-y:auto}
+.conv-hdr{text-align:center;margin-bottom:36px}
+.conv-hdr h1{font-size:28px;font-weight:700;letter-spacing:2px;margin-bottom:6px}
+.conv-hdr p{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim2);letter-spacing:2px}
+
+.steps-flow{width:100%;max-width:820px;display:flex;flex-direction:column;gap:0}
+
+.step-connector{display:flex;justify-content:center;align-items:center;height:36px;position:relative}
+.step-connector::before{
+  content:'';position:absolute;top:0;bottom:0;left:50%;
+  width:1px;background:linear-gradient(to bottom,var(--border2),rgba(0,255,204,.4));
+  transform:translateX(-50%);
+}
+.step-connector-icon{
+  position:relative;z-index:1;width:24px;height:24px;border-radius:50%;
+  background:var(--s2);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim2);
+}
+.step-connector-icon.lit{border-color:var(--accent);color:var(--accent);box-shadow:0 0 8px rgba(0,255,204,.3)}
+
+.step-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.step-card.active-step{border-color:rgba(0,255,204,.4);box-shadow:0 0 0 1px rgba(0,255,204,.08),inset 0 1px 0 rgba(0,255,204,.06)}
+.step-card.done-step{border-color:rgba(35,209,139,.3)}
+.step-card.locked{opacity:.4;pointer-events:none}
+
+.step-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.step-num{
+  width:26px;height:26px;border-radius:6px;flex-shrink:0;
+  background:var(--s3);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim2);
+}
+.active-step .step-num{background:rgba(0,255,204,.1);border-color:rgba(0,255,204,.4);color:var(--accent)}
+.done-step .step-num{background:rgba(35,209,139,.1);border-color:rgba(35,209,139,.4);color:var(--ok)}
+.step-title{font-size:15px;font-weight:700;letter-spacing:.5px}
+.step-subtitle{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim2);margin-top:1px}
+.step-check{margin-left:auto;color:var(--ok);font-size:14px;display:none}
+.done-step .step-check{display:block}
+.step-body{padding:18px}
+
+/* FORMAT GRID */
+.fmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:7px}
+.fmt-btn{
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;
+  cursor:pointer;transition:all .14s;width:100%;
+}
+.fmt-btn:hover{border-color:rgba(0,255,204,.4);transform:translateY(-1px)}
+.fmt-btn.selected{border-color:var(--accent);background:rgba(0,255,204,.08);box-shadow:0 0 0 1px rgba(0,255,204,.15)}
+.fmt-btn.unavailable{opacity:.25;cursor:not-allowed;pointer-events:none}
+.fmt-icon{font-size:22px}
+.fmt-name{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px}
+.fmt-desc{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim2);text-align:center;line-height:1.5}
+
+.route-display{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:11px 14px;margin-bottom:13px;
+}
+.route-fmt{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px}
+.route-fmt.from-fmt{background:rgba(0,255,204,.1);color:var(--accent);border:1px solid rgba(0,255,204,.25)}
+.route-fmt.to-fmt{background:rgba(102,68,255,.1);color:#9988ff;border:1px solid rgba(102,68,255,.25)}
+.route-arrow{color:var(--dim2)}
+.route-badge{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;letter-spacing:.5px}
+.rb-native{background:rgba(35,209,139,.12);color:var(--ok);border:1px solid rgba(35,209,139,.25)}
+.rb-ext{background:rgba(102,68,255,.12);color:#9988ff;border:1px solid rgba(102,68,255,.25)}
+
+.file-drop-area{
+  border:1px dashed var(--border2);border-radius:var(--r2);padding:34px 20px;
+  text-align:center;cursor:pointer;transition:all .2s;
+  background:linear-gradient(135deg,transparent,rgba(0,255,204,.015));
+}
+.file-drop-area:hover,.file-drop-area.over{border-color:rgba(0,255,204,.5);box-shadow:0 0 24px rgba(0,255,204,.07)}
+.drop-icon{font-size:36px;margin-bottom:10px;display:block}
+.drop-ttl{font-size:16px;font-weight:600;margin-bottom:5px}
+.drop-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim2);line-height:1.8}
+.drop-ext{
+  display:inline-block;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;
+  background:rgba(0,255,204,.08);color:var(--accent);border:1px solid rgba(0,255,204,.25);padding:3px 12px;border-radius:5px;
+}
+.sel-file{display:none;align-items:center;gap:12px;background:rgba(35,209,139,.06);border:1px solid rgba(35,209,139,.25);border-radius:var(--r);padding:11px 14px}
+.sel-file.show{display:flex}
+.sel-file-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ok);word-break:break-all}
+.sel-file-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim2);margin-top:2px}
+
+.btn-convert{
+  width:100%;padding:13px;margin-top:14px;
+  background:linear-gradient(135deg,rgba(0,255,204,.9),rgba(102,68,255,.9));
+  border:none;border-radius:var(--r);color:#000;font-weight:700;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:2px;cursor:pointer;transition:all .2s;
+}
+.btn-convert:hover{box-shadow:0 6px 24px rgba(0,255,204,.25);transform:translateY(-1px)}
+.btn-convert:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none}
+
+.conv-progress{display:none;margin-top:12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:13px 14px}
+.conv-progress.show{display:block}
+.prog-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim2);margin-bottom:8px;letter-spacing:1px}
+.prog-track{height:2px;background:var(--border2);border-radius:1px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:1px;animation:pgslide 1.2s ease-in-out infinite}
+@keyframes pgslide{0%{transform:translateX(-200%)}100%{transform:translateX(500%)}}
+
+.result-box{display:none;margin-top:12px;background:rgba(35,209,139,.05);border:1px solid rgba(35,209,139,.25);border-radius:var(--r);padding:14px}
+.result-box.show{display:block}
+.result-title{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--ok);margin-bottom:10px;letter-spacing:1px}
+.btn-dl{
+  display:flex;align-items:center;gap:8px;width:100%;padding:10px 13px;
+  background:rgba(35,209,139,.08);border:1px solid rgba(35,209,139,.25);border-radius:7px;
+  color:var(--ok);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .15s;margin-bottom:7px;
+}
+.btn-dl:hover{background:rgba(35,209,139,.15)}
+.btn-reset{
+  width:100%;padding:10px;margin-top:10px;background:none;border:1px solid var(--border);
+  border-radius:7px;color:var(--dim2);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;transition:all .15s;
+}
+.btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+.format-note{
+  background:rgba(102,68,255,.06);border:1px solid rgba(102,68,255,.2);border-radius:var(--r);
+  padding:11px 13px;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#a898ff;line-height:2;
+}
+
+/* VIEWER PANEL */
+.viewer-panel{flex-direction:row;min-height:calc(100vh - 56px)}
+.v-sidebar{
+  width:280px;flex-shrink:0;border-right:1px solid var(--border);background:var(--s1);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.vsec{padding:14px;border-bottom:1px solid var(--border)}
+.vsec-lbl{
+  font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--dim);
+  text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.vsec-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.v-drop{
+  border:1px dashed var(--border2);border-radius:var(--r);
+  padding:20px 12px;text-align:center;cursor:pointer;transition:all .2s;
+}
+.v-drop:hover,.v-drop.over{border-color:rgba(0,255,204,.5);box-shadow:0 0 16px rgba(0,255,204,.08)}
+.v-drop-icon{font-size:26px;display:block;margin-bottom:7px}
+.v-drop-ttl{font-size:14px;font-weight:600;margin-bottom:3px}
+.v-drop-sub{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim2);line-height:1.7}
+.v-drop-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px}
+.vtag{font-family:'IBM Plex Mono',monospace;font-size:8px;padding:2px 5px;border-radius:3px;border:1px solid}
+.vtag-v{color:var(--ok);border-color:rgba(35,209,139,.3);background:rgba(35,209,139,.06)}
+.vtag-p{color:var(--warn);border-color:rgba(224,175,104,.3);background:rgba(224,175,104,.06)}
+.vtag-3ma{color:var(--accent);border-color:rgba(0,255,204,.3);background:rgba(0,255,204,.07);font-weight:700}
+.v-file-bar{display:none;align-items:center;gap:7px;padding:9px 11px;background:var(--s2);border-radius:var(--r);margin-top:8px;border:1px solid var(--border)}
+.v-file-bar.show{display:flex}
+.v-file-nm{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v-file-mt{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim2);margin-top:2px}
+.btn-vclear{background:none;border:1px solid var(--border);color:var(--dim);border-radius:4px;padding:3px 7px;font-size:9px;cursor:pointer;font-family:'IBM Plex Mono',monospace;flex-shrink:0;transition:all .15s}
+.btn-vclear:hover{border-color:var(--err);color:var(--err)}
+
+.vctrl-group{display:flex;flex-direction:column;gap:7px}
+.vctrl-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.vctrl-lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim2);width:32px;flex-shrink:0;letter-spacing:.5px}
+.btn-v{
+  background:var(--s2);border:1px solid var(--border);color:var(--dim2);
+  border-radius:5px;padding:4px 9px;font-size:9px;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;white-space:nowrap;transition:all .12s;letter-spacing:.5px;
+}
+.btn-v:hover,.btn-v.on{border-color:var(--accent);color:var(--accent);background:rgba(0,255,204,.08)}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.stat-card{background:var(--s2);border:1px solid var(--border);border-radius:7px;padding:9px 11px}
+.stat-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent)}
+.stat-key{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim2);margin-top:2px;letter-spacing:1px}
+
+/* CANVAS WRAP */
+.v-canvas-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);min-height:400px}
+#vc{display:block;position:absolute;inset:0;width:100%;height:100%}
+.v-empty{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;color:var(--dim);gap:10px;pointer-events:none;
+}
+.v-empty-icon{font-size:52px;opacity:.12}
+.v-empty-txt{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:3px;opacity:.35;text-transform:uppercase}
+.v-loading{position:absolute;inset:0;display:none;z-index:10;background:rgba(6,8,16,.9);flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.v-loading.show{display:flex}
+.v-spinner{
+  width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .6s linear infinite;box-shadow:0 0 12px rgba(0,255,204,.2);
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.v-load-txt{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--dim2);letter-spacing:2px}
+.v-hint{
+  position:absolute;bottom:10px;right:10px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim);
+  background:rgba(6,8,16,.85);border:1px solid var(--border);padding:6px 10px;border-radius:6px;line-height:2;pointer-events:none;letter-spacing:.5px;
+}
+.v-format-badge{
+  position:absolute;top:10px;left:10px;font-family:'IBM Plex Mono',monospace;font-size:9px;
+  background:rgba(0,255,204,.1);color:var(--accent);border:1px solid rgba(0,255,204,.3);
+  padding:3px 9px;border-radius:4px;letter-spacing:1px;pointer-events:none;display:none;
+}
+.v-format-badge.show{display:block}
+
+/* TOASTS */
+#toasts{position:fixed;top:66px;right:12px;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{font-family:'IBM Plex Mono',monospace;font-size:10px;max-width:280px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;pointer-events:auto;animation:tin .2s ease;line-height:1.6;letter-spacing:.5px}
+@keyframes tin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.toast.ok{border-color:rgba(35,209,139,.4);color:var(--ok)}
+.toast.err{border-color:rgba(247,118,142,.4);color:var(--err)}
+.toast.warn{border-color:rgba(224,175,104,.4);color:var(--warn)}
+.toast.info{border-color:rgba(0,255,204,.3);color:var(--accent)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(6,8,16,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r2);max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:26px}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:18px;letter-spacing:1px}
+.modal-step{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;font-size:9px;line-height:2;color:var(--dim2)}
+.modal-step strong{color:var(--text)}
+.modal-step a{color:var(--accent);text-decoration:none}
+.modal-close{width:100%;padding:10px;margin-top:4px;background:none;border:1px solid var(--border);border-radius:7px;color:var(--dim2);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;transition:all .15s}
+.modal-close:hover{border-color:var(--accent);color:var(--accent)}
+
+.debug-panel{display:none;padding:10px;background:rgba(0,255,204,.04);border:1px solid rgba(0,255,204,.15);border-radius:var(--r);margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--dim2);line-height:1.8;max-height:200px;overflow-y:auto}
+.debug-panel.show{display:block}
+
+@media(max-width:640px){
+  .v-sidebar{width:100%;max-height:240px;border-right:none;border-bottom:1px solid var(--border)}
+  .viewer-panel{flex-direction:column}
+  .stat-grid{grid-template-columns:1fr 1fr 1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">
+    <div class="hdr-hex">⬡</div>
+    <div>
+      <div class="hdr-title">FORGE 3D</div>
+      <div class="hdr-ver">BY TRIOLOGY • v2.1 PROTOTYPE</div>
+    </div>
+  </div>
+  <div class="hdr-tabs">
+    <button class="tab-btn active" onclick="switchTab('convert')">⇄ CONVERT</button>
+    <button class="tab-btn"        onclick="switchTab('viewer')">◈ VIEWER</button>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- CONVERTER PANEL -->
+  <div class="panel conv-panel active" id="panel-convert">
+    <div class="conv-hdr">
+      <h1>3D Format Converter</h1>
+      <p>BROWSER-NATIVE · NO UPLOAD · NO FILE SIZE LIMIT · 3MA NATIVE</p>
+    </div>
+    <div class="steps-flow">
+
+      <div class="step-card active-step" id="step1">
+        <div class="step-head">
+          <div class="step-num">1</div>
+          <div><div class="step-title">Source Format</div><div class="step-subtitle">What format is your file?</div></div>
+          <span class="step-check">✓</span>
+        </div>
+        <div class="step-body"><div class="fmt-grid" id="fromGrid"></div></div>
+      </div>
+
+      <div class="step-connector"><div class="step-connector-icon" id="conn1">↓</div></div>
+
+      <div class="step-card locked" id="step2">
+        <div class="step-head">
+          <div class="step-num">2</div>
+          <div><div class="step-title">Target Format</div><div class="step-subtitle">What do you want to convert to?</div></div>
+          <span class="step-check">✓</span>
+        </div>
+        <div class="step-body">
+          <div class="fmt-grid" id="toGrid"></div>
+          <div class="format-note" id="fmtNote" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="step-connector"><div class="step-connector-icon" id="conn2">↓</div></div>
+
+      <div class="step-card locked" id="step3">
+        <div class="step-head">
+          <div class="step-num">3</div>
+          <div><div class="step-title">Select File &amp; Convert</div><div class="step-subtitle">Drop your file or click to browse</div></div>
+          <span class="step-check">✓</span>
+        </div>
+        <div class="step-body">
+          <div class="route-display" id="routeDisplay" style="display:none">
+            <span class="route-fmt from-fmt" id="routeFrom">—</span>
+            <span class="route-arrow">→</span>
+            <span class="route-fmt to-fmt" id="routeTo">—</span>
+            <span class="route-badge rb-native" id="routeBadge">NATIVE</span>
+          </div>
+          <div class="file-drop-area" id="convDrop">
+            <span class="drop-icon">📂</span>
+            <div class="drop-ttl">Drop file here or click to browse</div>
+            <div class="drop-sub">Processed entirely in your browser · No server · No size limit</div>
+            <span class="drop-ext" id="dropExt">.???</span>
+          </div>
+          <input type="file" id="convFileInput" style="display:none">
+          <div class="sel-file" id="selFile">
+            <span style="font-size:20px">📄</span>
+            <div>
+              <div class="sel-file-name" id="selFileName">—</div>
+              <div class="sel-file-meta" id="selFileMeta">—</div>
+            </div>
+          </div>
+          <button class="btn-convert" id="btnConvert" disabled>⚡ CONVERT</button>
+          <div class="conv-progress" id="convProg">
+            <div class="prog-lbl">CONVERTING…</div>
+            <div class="prog-track"><div class="prog-fill"></div></div>
+          </div>
+          <div class="result-box" id="resultBox">
+            <div class="result-title">✓ CONVERSION COMPLETE</div>
+            <div id="dlButtons"></div>
+            <button class="btn-reset" onclick="resetConverter()">↺ CONVERT ANOTHER FILE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEWER PANEL — always in DOM so canvas has real dimensions -->
+  <div class="panel viewer-panel" id="panel-viewer">
+    <div class="v-sidebar">
+      <div class="vsec">
+        <div class="vsec-lbl">Load &amp; View</div>
+        <div class="v-drop" id="viewDrop">
+          <span class="v-drop-icon">📦</span>
+          <div class="v-drop-ttl">Drop any 3D file</div>
+          <div class="v-drop-sub">GLTF · GLB · FBX · OBJ · STL · PLY · DAE · 3MA</div>
+          <div class="v-drop-tags">
+            <span class="vtag vtag-v">GLTF</span><span class="vtag vtag-v">GLB</span>
+            <span class="vtag vtag-v">FBX</span><span class="vtag vtag-v">OBJ</span>
+            <span class="vtag vtag-v">STL</span><span class="vtag vtag-v">PLY</span>
+            <span class="vtag vtag-v">DAE</span>
+            <span class="vtag vtag-3ma">3MA ★</span>
+            <span class="vtag vtag-p">BLEND*</span>
+          </div>
+        </div>
+        <input type="file" id="viewFileInput" accept=".gltf,.glb,.fbx,.obj,.stl,.ply,.dae,.3ma,.blend" style="display:none">
+        <div class="v-file-bar" id="vFileBar">
+          <div style="flex:1;min-width:0">
+            <div class="v-file-nm" id="vFileName">—</div>
+            <div class="v-file-mt" id="vFileMeta">—</div>
+          </div>
+          <button class="btn-vclear" id="btnVClear">✕</button>
+        </div>
+        <div class="debug-panel" id="debugPanel"></div>
+      </div>
+      <div class="vsec">
+        <div class="vsec-lbl">Controls</div>
+        <div class="vctrl-group">
+          <div class="vctrl-row">
+            <span class="vctrl-lbl">VIEW</span>
+            <button class="btn-v on" id="bSolid" onclick="setVMode('solid')">SOLID</button>
+            <button class="btn-v"   id="bWire"  onclick="setVMode('wire')">WIRE</button>
+            <button class="btn-v"   id="bPts"   onclick="setVMode('pts')">POINTS</button>
+          </div>
+          <div class="vctrl-row">
+            <span class="vctrl-lbl">BG</span>
+            <button class="btn-v" onclick="cycleBg()">CYCLE BG</button>
+          </div>
+          <div class="vctrl-row">
+            <span class="vctrl-lbl">CAM</span>
+            <button class="btn-v" onclick="resetCam()">RESET</button>
+            <button class="btn-v" id="bAuto" onclick="toggleAuto()">AUTO ⟳</button>
+            <button class="btn-v" onclick="goFull()">⛶ FULL</button>
+          </div>
+        </div>
+      </div>
+      <div class="vsec">
+        <div class="vsec-lbl">Statistics</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val" id="sVerts">—</div><div class="stat-key">VERTICES</div></div>
+          <div class="stat-card"><div class="stat-val" id="sTris">—</div><div class="stat-key">TRIANGLES</div></div>
+          <div class="stat-card"><div class="stat-val" id="sMats">—</div><div class="stat-key">MATERIALS</div></div>
+          <div class="stat-card"><div class="stat-val" id="sMeshes">—</div><div class="stat-key">MESHES</div></div>
+          <div class="stat-card" style="grid-column:1/-1"><div class="stat-val" id="sSize">—</div><div class="stat-key">FILE SIZE</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="v-canvas-wrap" id="vWrap">
+      <canvas id="vc"></canvas>
+      <div class="v-empty" id="vEmpty">
+        <div class="v-empty-icon">◈</div>
+        <div class="v-empty-txt">Load a 3D file to preview</div>
+      </div>
+      <div class="v-loading" id="vLoad">
+        <div class="v-spinner"></div>
+        <div class="v-load-txt" id="vLoadTxt">LOADING…</div>
+      </div>
+      <div class="v-format-badge" id="vFormatBadge"></div>
+      <div class="v-hint">🖱 Drag·rotate &nbsp;|&nbsp; Scroll·zoom &nbsp;|&nbsp; Right-drag·pan</div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toasts"></div>
+
+<div class="modal-bg" id="guideModal">
+  <div class="modal">
+    <h2>⚙ Project Info &amp; Export Guide</h2>
+    <div class="modal-step">
+      <strong>Developer Credit</strong><br>
+      Created by: <strong>triology</strong><br>
+      Discord: <strong>@LiveTriology</strong><br>
+      Email: <a href="mailto:LiveTriology@gmail.com">LiveTriology@gmail.com</a>
+    </div>
+    <div class="modal-step">
+      <strong>FBX / Blender exports need an external tool</strong><br>
+      Download <a href="https://blender.org" target="_blank">Blender (free)</a> — File → Import → then Export as FBX, GLTF, OBJ, etc.
+    </div>
+    <div class="modal-step">
+      <strong>Online converters</strong><br>
+      • <a href="https://anyconv.com" target="_blank">anyconv.com</a><br>
+      • <a href="https://products.aspose.app/3d/conversion" target="_blank">aspose 3D converter</a><br>
+      • <a href="https://convertio.co/3d-converter/" target="_blank">convertio.co</a>
+    </div>
+    <div class="modal-step">
+      <strong>About .blend</strong><br>
+      Blender's proprietary binary — only Blender can open it natively.<br>
+      Export as GLTF/GLB for web compatibility.
+    </div>
+    <button class="modal-close" onclick="document.getElementById('guideModal').classList.remove('show')">CLOSE</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+var $ = function(id){ return document.getElementById(id); };
+
+function toast(msg, type){
+  type = type || 'info';
+  var el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(function(){ el.style.opacity='0'; el.style.transition='opacity .3s'; }, 3400);
+  setTimeout(function(){ el.remove && el.remove(); }, 3800);
+}
+window.toast = toast;
+
+function fmtBytes(b){
+  if(b<1024) return b+' B';
+  if(b<1048576) return (b/1024).toFixed(1)+' KB';
+  if(b<1073741824) return (b/1048576).toFixed(1)+' MB';
+  return (b/1073741824).toFixed(2)+' GB';
+}
+function dlBlob(blob, name){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 15000);
+}
+
+// ─── TAB ─────────────────────────────────────────────────────────────────────
+window.switchTab = function(tab){
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  $('panel-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    if(b.textContent.toLowerCase().indexOf(tab==='convert'?'convert':'viewer') >= 0)
+      b.classList.add('active');
+  });
+  if(tab==='viewer') fitRenderer();
+};
+
+// ─── THREE.JS VIEWER ─────────────────────────────────────────────────────────
+var vWrap  = $('vWrap');
+var canvas = $('vc');
+
+var vScene = new THREE.Scene();
+vScene.background = new THREE.Color(0x060810);
+
+vScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+var sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(5, 10, 7);
+sun.castShadow = true;
+sun.shadow.mapSize.width = sun.shadow.mapSize.height = 2048;
+vScene.add(sun);
+var fill = new THREE.DirectionalLight(0x00ffcc, 0.35);
+fill.position.set(-5, 2, -3);
+vScene.add(fill);
+var rim = new THREE.DirectionalLight(0x6644ff, 0.25);
+rim.position.set(0, -5, -5);
+vScene.add(rim);
+
+vScene.add(new THREE.GridHelper(20, 20, 0x1c2236, 0x111523));
+
+var vCamera = new THREE.PerspectiveCamera(45, 1, 0.0001, 1000000);
+vCamera.position.set(4, 3, 5);
+
+var vRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+vRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+vRenderer.shadowMap.enabled = true;
+vRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+vRenderer.outputEncoding = THREE.sRGBEncoding;
+vRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+vRenderer.toneMappingExposure = 1.0;
+
+var vControls = new THREE.OrbitControls(vCamera, canvas);
+vControls.enableDamping = true;
+vControls.dampingFactor = 0.06;
+vControls.screenSpacePanning = true;
+vControls.minDistance = 0.0001;
+vControls.maxDistance = 100000;
+
+var vModel=null, vMixer=null, vMode='solid', vAutoRot=false, vBgIdx=0;
+var vClock = new THREE.Clock();
+var BG_COLORS = [0x060810, 0x0d1117, 0x0f1923, 0x1a0d2e, 0xffffff];
+
+(function loop(){
+  requestAnimationFrame(loop);
+  vControls.update();
+  if(vMixer) vMixer.update(vClock.getDelta());
+  vRenderer.render(vScene, vCamera);
+})();
+
+function fitRenderer(){
+  var w = vWrap.offsetWidth  || 800;
+  var h = vWrap.offsetHeight || 600;
+  vCamera.aspect = w / h;
+  vCamera.updateProjectionMatrix();
+  vRenderer.setSize(w, h, false);
+}
+fitRenderer();
+if(window.ResizeObserver) new ResizeObserver(fitRenderer).observe(vWrap);
+window.addEventListener('resize', fitRenderer);
+
+window.setVMode = function(mode){
+  vMode = mode;
+  ['Solid','Wire','Pts'].forEach(function(m){
+    var el = $('b'+m); if(el) el.classList.remove('on');
+  });
+  var active = $('b'+mode.charAt(0).toUpperCase()+mode.slice(1));
+  if(active) active.classList.add('on');
+  applyVMode();
+};
+function applyVMode(){
+  if(!vModel) return;
+  vModel.traverse(function(c){
+    if(!c.isMesh) return;
+    var mats = Array.isArray(c.material)?c.material:[c.material];
+    mats.forEach(function(m){ if(m) m.wireframe = (vMode==='wire'); });
+  });
+}
+window.cycleBg = function(){
+  vBgIdx = (vBgIdx+1) % BG_COLORS.length;
+  vScene.background = new THREE.Color(BG_COLORS[vBgIdx]);
+};
+window.resetCam = function(){
+  if(!vModel){ vCamera.position.set(4,3,5); vControls.target.set(0,0,0); return; }
+  var box = new THREE.Box3().setFromObject(vModel);
+  var sz = box.getSize(new THREE.Vector3());
+  var d = Math.max(sz.x,sz.y,sz.z)*1.8;
+  vCamera.position.set(d*.8, d*.5, d);
+  vControls.target.set(0, sz.y*.5, 0);
+  vControls.update();
+};
+window.toggleAuto = function(){
+  vAutoRot = !vAutoRot;
+  vControls.autoRotate = vAutoRot;
+  vControls.autoRotateSpeed = 1.8;
+  var b = $('bAuto'); if(b) b.classList.toggle('on', vAutoRot);
+};
+window.goFull = function(){
+  if(!document.fullscreenElement){
+    if(vWrap.requestFullscreen) vWrap.requestFullscreen();
+    else if(vWrap.webkitRequestFullscreen) vWrap.webkitRequestFullscreen();
+  } else {
+    if(document.exitFullscreen) document.exitFullscreen();
+  }
+};
+
+function disposeVModel(){
+  if(!vModel) return;
+  vScene.remove(vModel);
+  vModel.traverse(function(c){
+    if(!c.isMesh) return;
+    if(c.geometry) c.geometry.dispose();
+    var mats = Array.isArray(c.material)?c.material:[c.material];
+    mats.forEach(function(m){
+      if(!m) return;
+      Object.values(m).forEach(function(v){ if(v && v.isTexture) v.dispose(); });
+      m.dispose();
+    });
+  });
+  vModel = null;
+  if(vMixer){ vMixer.stopAllAction(); vMixer=null; }
+}
+
+function finishLoad(obj3d, file, label){
+  disposeVModel();
+  var box = new THREE.Box3().setFromObject(obj3d);
+  var sz  = box.getSize(new THREE.Vector3());
+  var ctr = box.getCenter(new THREE.Vector3());
+  var maxD = Math.max(sz.x, sz.y, sz.z) || 1;
+  var sf = 3 / maxD;
+  obj3d.position.copy(ctr.negate().multiplyScalar(sf));
+  obj3d.scale.setScalar(sf);
+  var box2 = new THREE.Box3().setFromObject(obj3d);
+  obj3d.position.y -= box2.min.y;
+  obj3d.traverse(function(c){ if(c.isMesh){ c.castShadow=true; c.receiveShadow=true; } });
+  vScene.add(obj3d);
+  vModel = obj3d;
+
+  var scaledSz = sz.clone().multiplyScalar(sf);
+  var dist = Math.max(Math.max(scaledSz.x,scaledSz.y,scaledSz.z)*1.8, 1);
+  vCamera.position.set(dist*.8, dist*.5, dist);
+  vControls.target.set(0, scaledSz.y*.5, 0);
+  vControls.update();
+
+  var verts=0, tris=0, meshCount=0, matsSet=new Set();
+  obj3d.traverse(function(c){
+    if(!c.isMesh) return;
+    meshCount++;
+    if(c.geometry.attributes.position) verts += c.geometry.attributes.position.count;
+    if(c.geometry.index) tris += c.geometry.index.count/3;
+    else if(c.geometry.attributes.position) tris += c.geometry.attributes.position.count/3;
+    var mats = Array.isArray(c.material)?c.material:[c.material];
+    mats.forEach(function(m){ if(m) matsSet.add(m); });
+  });
+  $('sVerts').textContent = Math.round(verts).toLocaleString();
+  $('sTris').textContent  = Math.round(tris).toLocaleString();
+  $('sMats').textContent  = matsSet.size;
+  $('sMeshes').textContent= meshCount;
+  $('sSize').textContent  = fmtBytes(file.size);
+  $('vEmpty').style.display = 'none';
+  $('vLoad').classList.remove('show');
+  var badge = $('vFormatBadge');
+  badge.textContent = label || file.name.split('.').pop().toUpperCase();
+  badge.classList.add('show');
+  applyVMode();
+  toast('Loaded: '+file.name, 'ok');
+}
+
+// ─── 3MA PARSER ──────────────────────────────────────────────────────────────
+function parse3MA(text){
+  var data;
+  try { data = JSON.parse(text); }
+  catch(e){ throw new Error('Invalid 3MA: bad JSON — '+e.message); }
+
+  if(!data.meshes || !data.meshes.length)
+    throw new Error('3MA file contains no meshes');
+
+  var group = new THREE.Group();
+  var dbgLines = ['3MA v'+(data.saveVersion||'?')+' — '+(data.fileName||'unnamed')+' — '+data.meshes.length+' mesh(es)'];
+  var skipped = 0;
+
+  for(var meshIdx=0; meshIdx<data.meshes.length; meshIdx++){
+    var md = data.meshes[meshIdx];
+    try {
+      var pf      = md.preciseFactor || 10000;
+      var rawPos  = md._positions  || [];
+      var posIdx  = md._posIndexis || [];
+      var rawNrm  = md._normals    || [];
+      var rawUV   = md._uvs        || [];
+      var rawCol  = md._colorsHtml || [];
+      var tris    = md.triangles   || [];
+
+      if(rawPos.length < 3){
+        dbgLines.push('  Mesh['+meshIdx+']: SKIP — no _positions');
+        skipped++; continue;
+      }
+      if(tris.length === 0){
+        dbgLines.push('  Mesh['+meshIdx+']: SKIP — no triangles');
+        skipped++; continue;
+      }
+
+      var numUnique = Math.floor(rawPos.length / 3);
+      var uniquePos = new Float32Array(numUnique * 3);
+      for(var i=0; i<numUnique; i++){
+        uniquePos[i*3]   = rawPos[i*3]   / pf;
+        uniquePos[i*3+1] = rawPos[i*3+1] / pf;
+        uniquePos[i*3+2] = rawPos[i*3+2] / pf;
+      }
+
+      var numTV   = tris.length;
+      var posArr  = new Float32Array(numTV * 3);
+      var nrmArr  = new Float32Array(numTV * 3);
+      var uvArr   = new Float32Array(numTV * 2);
+      var colArr  = new Float32Array(numTV * 3);
+
+      var hasPosIdx = posIdx.length >= numTV;
+      var hasNrm    = rawNrm.length >= numTV * 3;
+      var hasUV     = rawUV.length  >= numTV * 2;
+      var hasCol    = rawCol.length >= numTV;
+
+      for(var i=0; i<numTV; i++){
+        var slot = tris[i];
+        var px=0, py=0, pz=0;
+        if(hasPosIdx && slot < posIdx.length){
+          var uid = posIdx[slot] * 3;
+          if(uid+2 < uniquePos.length){
+            px = uniquePos[uid]; py = uniquePos[uid+1]; pz = uniquePos[uid+2];
+          }
+        } else if(slot*3+2 < uniquePos.length){
+          px = uniquePos[slot*3]; py = uniquePos[slot*3+1]; pz = uniquePos[slot*3+2];
+        }
+        posArr[i*3]=px; posArr[i*3+1]=py; posArr[i*3+2]=pz;
+
+        if(hasNrm && slot*3+2 < rawNrm.length){
+          nrmArr[i*3]   = rawNrm[slot*3]   / pf;
+          nrmArr[i*3+1] = rawNrm[slot*3+1] / pf;
+          nrmArr[i*3+2] = rawNrm[slot*3+2] / pf;
+        }
+
+        if(hasUV && slot*2+1 < rawUV.length){
+          uvArr[i*2]   = rawUV[slot*2]   / pf;
+          uvArr[i*2+1] = rawUV[slot*2+1] / pf;
+        }
+
+        if(hasCol && slot < rawCol.length){
+          var hex = rawCol[slot] || 'CCCCCC';
+          colArr[i*3]   = parseInt(hex.slice(0,2),16)/255;
+          colArr[i*3+1] = parseInt(hex.slice(2,4),16)/255;
+          colArr[i*3+2] = parseInt(hex.slice(4,6),16)/255;
+        } else {
+          colArr[i*3]=0.8; colArr[i*3+1]=0.8; colArr[i*3+2]=0.8;
+        }
+      }
+
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+      if(hasNrm){
+        geo.setAttribute('normal', new THREE.BufferAttribute(nrmArr, 3));
+      } else {
+        geo.computeVertexNormals();
+      }
+      if(hasUV) geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+      geo.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+
+      var mc = md.material || data.material || {};
+      var mat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        metalness: mc.metalness != null ? mc.metalness : (mc.metallic != null ? mc.metallic : 0.05),
+        roughness:  mc.roughness != null ? mc.roughness : 0.7,
+        side: THREE.DoubleSide,
+      });
+
+      var mesh = new THREE.Mesh(geo, mat);
+      mesh.name = md.name || ('mesh_'+meshIdx);
+      if(md.rotation){
+        var q = md.rotation;
+        mesh.quaternion.set(q.x||0, q.y||0, q.z||0, q.w!=null?q.w:1);
+      }
+      group.add(mesh);
+
+      dbgLines.push('  Mesh['+meshIdx+']: '+Math.round(numTV/3)+' tris, '+numUnique+' unique verts');
+    } catch(e){
+      dbgLines.push('  Mesh['+meshIdx+']: ERROR — '+e.message);
+      skipped++;
+    }
+  }
+
+  var dbg = $('debugPanel');
+  dbg.innerHTML = dbgLines.map(function(l){ return '<div>'+l+'</div>'; }).join('');
+  dbg.classList.add('show');
+
+  if(!group.children.length)
+    throw new Error('3MA: all '+data.meshes.length+' mesh(es) failed. See debug panel.');
+
+  return group;
+}
+
+// ─── VIEWER LOAD ─────────────────────────────────────────────────────────────
+function viewLoad(file){
+  var ext = file.name.split('.').pop().toLowerCase();
+  $('vFileName').textContent = file.name;
+  $('vFileMeta').textContent = fmtBytes(file.size)+' · .'+ext.toUpperCase();
+  $('vFileBar').classList.add('show');
+  $('vLoad').classList.add('show');
+  $('vLoadTxt').textContent = 'LOADING…';
+  $('vFormatBadge').classList.remove('show');
+  $('debugPanel').classList.remove('show');
+
+  if(ext==='3ma'){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try {
+        var obj3d = parse3MA(e.target.result);
+        finishLoad(obj3d, file, '3MA');
+      } catch(err){
+        $('vLoad').classList.remove('show');
+        $('vEmpty').style.display = '';
+        toast('3MA error: '+err.message, 'err');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+    return;
+  }
+
+  if(ext==='blend'){
+    $('vLoad').classList.remove('show');
+    toast('.blend cannot be viewed in-browser. Export as GLTF from Blender.','warn');
+    return;
+  }
+
+  var url = URL.createObjectURL(file);
+
+  function onErr(err){
+    URL.revokeObjectURL(url);
+    $('vLoad').classList.remove('show');
+    $('vEmpty').style.display = '';
+    var msg = err && (err.message || String(err)) || 'Unknown error';
+    toast('Load failed: '+msg, 'err');
+    console.error('viewLoad error:', err);
+  }
+
+  function onDone(obj3d){
+    URL.revokeObjectURL(url);
+    if(obj3d) finishLoad(obj3d, file, ext.toUpperCase());
+    else { $('vLoad').classList.remove('show'); toast('No geometry found','warn'); }
+  }
+
+  try {
+    if(ext==='gltf'||ext==='glb'){
+      var loader = new THREE.GLTFLoader();
+      loader.load(url, function(g){
+        if(g.animations && g.animations.length){
+          vMixer = new THREE.AnimationMixer(g.scene);
+          g.animations.forEach(function(c){ vMixer.clipAction(c).play(); });
+        }
+        onDone(g.scene);
+      }, undefined, onErr);
+    } else if(ext==='fbx'){
+      new THREE.FBXLoader().load(url, function(obj){
+        if(obj.animations && obj.animations.length){
+          vMixer = new THREE.AnimationMixer(obj);
+          vMixer.clipAction(obj.animations[0]).play();
+        }
+        onDone(obj);
+      }, undefined, onErr);
+    } else if(ext==='obj'){
+      new THREE.OBJLoader().load(url, onDone, undefined, onErr);
+    } else if(ext==='stl'){
+      var stlLoader = new THREE.STLLoader();
+      stlLoader.load(url, function(geo){
+        geo.computeVertexNormals();
+        onDone(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x00ffcc,metalness:.1,roughness:.65})));
+      }, undefined, onErr);
+    } else if(ext==='ply'){
+      var plyLoader = new THREE.PLYLoader();
+      plyLoader.load(url, function(geo){
+        geo.computeVertexNormals();
+        onDone(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+          vertexColors: geo.hasAttribute ? geo.hasAttribute('color') : false,
+          color:0x6644ff, metalness:.1, roughness:.7
+        })));
+      }, undefined, onErr);
+    } else if(ext==='dae'){
+      new THREE.ColladaLoader().load(url, function(c){ onDone(c.scene); }, undefined, onErr);
+    } else {
+      URL.revokeObjectURL(url);
+      $('vLoad').classList.remove('show');
+      toast('Unsupported format: .'+ext, 'err');
+    }
+  } catch(e){ onErr(e); }
+}
+
+var viewDrop = $('viewDrop');
+var viewFI   = $('viewFileInput');
+viewDrop.addEventListener('click', function(){ viewFI.click(); });
+viewDrop.addEventListener('dragover',  function(e){ e.preventDefault(); viewDrop.classList.add('over'); });
+viewDrop.addEventListener('dragleave', function(){ viewDrop.classList.remove('over'); });
+viewDrop.addEventListener('drop', function(e){
+  e.preventDefault(); viewDrop.classList.remove('over');
+  if(e.dataTransfer.files[0]) viewLoad(e.dataTransfer.files[0]);
+});
+viewFI.addEventListener('change', function(e){ if(e.target.files[0]) viewLoad(e.target.files[0]); });
+$('btnVClear').addEventListener('click', function(){
+  disposeVModel(); viewFI.value='';
+  $('vFileBar').classList.remove('show');
+  $('vEmpty').style.display='';
+  $('vFormatBadge').classList.remove('show');
+  $('debugPanel').classList.remove('show');
+  ['sVerts','sTris','sMats','sMeshes','sSize'].forEach(function(id){ $(id).textContent='—'; });
+  toast('Cleared','info');
+});
+
+// ─── CONVERTER ───────────────────────────────────────────────────────────────
+var FORMATS = [
+  {id:'gltf', name:'GLTF',  icon:'🔷', desc:'GL Transmission\nFormat (text)'},
+  {id:'glb',  name:'GLB',   icon:'🔹', desc:'GLTF Binary\nsingle file'},
+  {id:'fbx',  name:'FBX',   icon:'🟠', desc:'Autodesk FBX\nanim + rig'},
+  {id:'obj',  name:'OBJ',   icon:'⬜', desc:'Wavefront OBJ\nwidely supported'},
+  {id:'stl',  name:'STL',   icon:'🔺', desc:'Stereolithography\n3D printing'},
+  {id:'ply',  name:'PLY',   icon:'🔻', desc:'Polygon File\npoint clouds'},
+  {id:'dae',  name:'DAE',   icon:'📐', desc:'Collada\nopen standard'},
+  {id:'3ma',  name:'3MA',   icon:'🧊', desc:'3D Model App\nJSON-based'},
+  {id:'blend',name:'BLEND', icon:'🟡', desc:'Blender native\nformat'},
+];
+var CONV_MAP = {
+  gltf: {glb:'native',obj:'native',stl:'native','3ma':'native',fbx:'ext',blend:'ext'},
+  glb:  {gltf:'native',obj:'native',stl:'native','3ma':'native',fbx:'ext',blend:'ext'},
+  fbx:  {glb:'native',gltf:'native',obj:'native',stl:'native','3ma':'native',blend:'ext'},
+  obj:  {glb:'native',gltf:'native',stl:'native','3ma':'native',fbx:'ext',blend:'ext'},
+  stl:  {glb:'native',gltf:'native',obj:'native','3ma':'native',fbx:'ext',blend:'ext'},
+  ply:  {glb:'native',gltf:'native',obj:'native',stl:'native','3ma':'native',fbx:'ext',blend:'ext'},
+  dae:  {glb:'native',gltf:'native',obj:'native',stl:'native','3ma':'native',fbx:'ext',blend:'ext'},
+  '3ma':{glb:'native',gltf:'native',obj:'native',stl:'native'},
+  blend:{fbx:'ext',gltf:'ext',glb:'ext',obj:'ext',stl:'ext'},
+};
+
+var fromFmt=null, toFmt=null, convFile=null;
+
+function buildGrid(containerId, onSelect, selectedId, availIds){
+  var grid = $(containerId); if(!grid) return;
+  grid.innerHTML = '';
+  FORMATS.forEach(function(fmt){
+    var avail = !availIds || availIds.indexOf(fmt.id) >= 0;
+    var btn = document.createElement('button');
+    btn.className = 'fmt-btn'+(avail?'':' unavailable')+(fmt.id===selectedId?' selected':'');
+    btn.innerHTML = '<span class="fmt-icon">'+fmt.icon+'</span><span class="fmt-name">'+fmt.name+'</span><span class="fmt-desc">'+fmt.desc.replace('\n','<br>')+'</span>';
+    if(avail) btn.addEventListener('click', function(){ onSelect(fmt.id); });
+    grid.appendChild(btn);
+  });
+}
+
+function onFrom(id){
+  fromFmt=id; toFmt=null; convFile=null;
+  $('step1').className='step-card done-step';
+  $('step2').className='step-card active-step';
+  $('step3').className='step-card locked';
+  $('conn1').classList.add('lit'); $('conn2').classList.remove('lit');
+  $('routeDisplay').style.display='none';
+  $('selFile').classList.remove('show');
+  $('resultBox').classList.remove('show');
+  $('convProg').classList.remove('show');
+  $('fmtNote').style.display='none';
+  $('btnConvert').disabled=true;
+  $('convFileInput').value='';
+  buildGrid('fromGrid', onFrom, fromFmt, null);
+  buildGrid('toGrid', onTo, null, Object.keys(CONV_MAP[fromFmt]||{}));
+}
+
+function onTo(id){
+  toFmt=id;
+  var level = (CONV_MAP[fromFmt]||{})[id] || 'ext';
+  var avail = Object.keys(CONV_MAP[fromFmt]||{});
+  $('step2').className='step-card done-step';
+  $('step3').className='step-card active-step';
+  $('conn2').classList.add('lit');
+  buildGrid('toGrid', onTo, toFmt, avail);
+
+  var note = $('fmtNote');
+  if(id==='fbx'||id==='blend'){
+    note.textContent = id==='fbx'
+      ? '⚠ FBX export needs an external tool like Blender. See guide.'
+      : '⚠ .blend is Blender-proprietary. Only Blender can create it.';
+    note.style.display='';
+  } else note.style.display='none';
+
+  var ff = FORMATS.filter(function(f){ return f.id===fromFmt; })[0];
+  var tf = FORMATS.filter(function(f){ return f.id===id; })[0];
+  $('routeFrom').textContent = ff.name;
+  $('routeTo').textContent   = tf.name;
+  var badge = $('routeBadge');
+  badge.textContent = level==='native'?'NATIVE BROWSER':'EXTERNAL TOOL';
+  badge.className = 'route-badge '+(level==='native'?'rb-native':'rb-ext');
+  $('routeDisplay').style.display='flex';
+  $('dropExt').textContent = '.'+fromFmt.toUpperCase();
+  $('convFileInput').accept = '.'+fromFmt;
+  convFile=null;
+  $('selFile').classList.remove('show');
+  $('resultBox').classList.remove('show');
+  $('convProg').classList.remove('show');
+  $('btnConvert').disabled=true;
+  $('convFileInput').value='';
+  if(level==='ext') setTimeout(function(){ toast(ff.name+'→'+tf.name+' needs an external tool.','warn'); $('guideModal').classList.add('show'); }, 200);
+}
+
+buildGrid('fromGrid', onFrom, null, null);
+
+var convDrop = $('convDrop');
+var convFI   = $('convFileInput');
+convDrop.addEventListener('click', function(){ convFI.click(); });
+convDrop.addEventListener('dragover',  function(e){ e.preventDefault(); convDrop.classList.add('over'); });
+convDrop.addEventListener('dragleave', function(){ convDrop.classList.remove('over'); });
+convDrop.addEventListener('drop', function(e){ e.preventDefault(); convDrop.classList.remove('over'); if(e.dataTransfer.files[0]) handleConvFile(e.dataTransfer.files[0]); });
+convFI.addEventListener('change', function(e){ if(e.target.files[0]) handleConvFile(e.target.files[0]); });
+
+function handleConvFile(file){
+  if(!fromFmt||!toFmt){ toast('Select source and target format first','warn'); return; }
+  convFile=file;
+  $('selFileName').textContent = file.name;
+  $('selFileMeta').textContent = fmtBytes(file.size)+' · .'+fromFmt.toUpperCase();
+  $('selFile').classList.add('show');
+  $('step3').className='step-card done-step';
+  $('btnConvert').disabled=false;
+  $('resultBox').classList.remove('show');
+}
+
+$('btnConvert').addEventListener('click', function(){
+  if(!convFile||!fromFmt||!toFmt) return;
+  if((CONV_MAP[fromFmt]||{})[toFmt]==='ext'){ $('guideModal').classList.add('show'); return; }
+  $('convProg').classList.add('show');
+  $('btnConvert').disabled=true;
+  $('resultBox').classList.remove('show');
+  convertFile(convFile, fromFmt, toFmt, function(err, results){
+    $('convProg').classList.remove('show');
+    if(err){
+      $('btnConvert').disabled=false;
+      toast('Conversion failed: '+(err.message||err),'err');
+      return;
+    }
+    var dlBtns = $('dlButtons'); dlBtns.innerHTML='';
+    results.forEach(function(r){
+      var btn=document.createElement('button'); btn.className='btn-dl';
+      btn.innerHTML='<span>⬇</span><span>'+r.name+'</span><span style="margin-left:auto;font-size:8px;color:var(--dim2)">'+fmtBytes(r.blob.size)+'</span>';
+      btn.addEventListener('click',function(){ dlBlob(r.blob,r.name); });
+      dlBtns.appendChild(btn);
+    });
+    $('resultBox').classList.add('show');
+    toast('Conversion complete!','ok');
+  });
+});
+
+window.resetConverter = function(){
+  fromFmt=null; toFmt=null; convFile=null;
+  $('step1').className='step-card active-step';
+  $('step2').className='step-card locked';
+  $('step3').className='step-card locked';
+  $('conn1').classList.remove('lit'); $('conn2').classList.remove('lit');
+  $('fmtNote').style.display='none'; $('routeDisplay').style.display='none';
+  $('selFile').classList.remove('show'); $('resultBox').classList.remove('show');
+  $('convProg').classList.remove('show'); $('btnConvert').disabled=true;
+  $('convFileInput').value='';
+  buildGrid('fromGrid', onFrom, null, null);
+  $('toGrid').innerHTML='';
+};
+
+// ─── CONVERTER ENGINE ────────────────────────────────────────────────────────
+function export3MA(obj3d, name){
+  var meshes = [];
+  obj3d.traverse(function(c){
+    if(!c.isMesh) return;
+    var pos = c.geometry.getAttribute('position');
+    if(!pos) return;
+    var pf=10000, verts=[], faces=[];
+    for(var i=0;i<pos.count;i++) verts.push(Math.round(pos.getX(i)*pf), Math.round(pos.getY(i)*pf), Math.round(pos.getZ(i)*pf));
+    if(c.geometry.index){ var ix=c.geometry.index.array; for(var i=0;i<ix.length;i+=3) faces.push(ix[i],ix[i+1],ix[i+2]); }
+    else { for(var i=0;i<pos.count;i++) faces.push(i); }
+    var m = Array.isArray(c.material)?c.material[0]:c.material;
+    meshes.push({
+      name:c.name||('mesh_'+meshes.length), preciseFactor:pf,
+      _positions:verts, triangles:faces, _posIndexis:faces,
+      _posCounter:faces.map(function(){return 0;}),
+      _normals:[], _uvs:[], _colorsHtml:faces.map(function(){return 'CCCCCC';}),
+      rotation:{x:c.quaternion.x,y:c.quaternion.y,z:c.quaternion.z,w:c.quaternion.w},
+      material:{color:'#'+(m&&m.color?m.color.getHexString():'888888'),metalness:m?m.metalness||0:0,roughness:m?m.roughness||.6:.6}
+    });
+  });
+  return {saveVersion:7, fileName:name, meshes:meshes};
+}
+
+function loadSource(file, from, cb){
+  if(from==='3ma'){
+    var reader=new FileReader();
+    reader.onload=function(e){ try{ cb(null, parse3MA(e.target.result), []); }catch(e2){ cb(e2); } };
+    reader.readAsText(file); return;
+  }
+  var url=URL.createObjectURL(file);
+  function cleanup(err,obj,anims){ URL.revokeObjectURL(url); cb(err,obj,anims||[]); }
+  try{
+    if(from==='gltf'||from==='glb'){
+      new THREE.GLTFLoader().load(url,function(g){ cleanup(null,g.scene,g.animations); },undefined,function(e){ cleanup(e); });
+    } else if(from==='fbx'){
+      new THREE.FBXLoader().load(url,function(o){ cleanup(null,o,o.animations||[]); },undefined,function(e){ cleanup(e); });
+    } else if(from==='obj'){
+      new THREE.OBJLoader().load(url,function(o){ cleanup(null,o,[]); },undefined,function(e){ cleanup(e); });
+    } else if(from==='stl'){
+      new THREE.STLLoader().load(url,function(g){ g.computeVertexNormals(); cleanup(null,new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x888888})),[]); },undefined,function(e){ cleanup(e); });
+    } else if(from==='ply'){
+      new THREE.PLYLoader().load(url,function(g){ g.computeVertexNormals(); cleanup(null,new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:g.hasAttribute&&g.hasAttribute('color'),color:0x888888})),[]); },undefined,function(e){ cleanup(e); });
+    } else if(from==='dae'){
+      new THREE.ColladaLoader().load(url,function(c){ cleanup(null,c.scene,[]); },undefined,function(e){ cleanup(e); });
+    } else { cleanup(new Error('Unsupported source: '+from)); }
+  } catch(e){ cleanup(e); }
+}
+
+function convertFile(file, from, to, cb){
+  var base = file.name.replace(/\.[^.]+$/,'');
+  loadSource(file, from, function(err, obj, anims){
+    if(err){ cb(err); return; }
+    if(!obj){ cb(new Error('Failed to load source')); return; }
+    var results=[];
+    try{
+      if(to==='glb'){
+        new THREE.GLTFExporter().parse(obj,function(b){ results.push({name:base+'.glb',blob:new Blob([b],{type:'model/gltf-binary'})}); cb(null,results); },{binary:true,animations:anims});
+      } else if(to==='gltf'){
+        new THREE.GLTFExporter().parse(obj,function(j){ results.push({name:base+'.gltf',blob:new Blob([JSON.stringify(j,null,2)],{type:'model/gltf+json'})}); cb(null,results); },{binary:false,animations:anims});
+      } else if(to==='obj'){
+        var s=new THREE.OBJExporter().parse(obj); results.push({name:base+'.obj',blob:new Blob([s],{type:'text/plain'})}); cb(null,results);
+      } else if(to==='stl'){
+        var s=new THREE.STLExporter().parse(obj,{binary:false}); results.push({name:base+'.stl',blob:new Blob([s],{type:'model/stl'})}); cb(null,results);
+      } else if(to==='3ma'){
+        var d=export3MA(obj,base); results.push({name:base+'.3ma',blob:new Blob([JSON.stringify(d,null,2)],{type:'application/json'})}); cb(null,results);
+      } else { cb(new Error('Unsupported target: '+to)); }
+    } catch(e){ cb(e); }
+  });
+}
+
+$('guideModal').addEventListener('click', function(e){ if(e.target===e.currentTarget) e.currentTarget.classList.remove('show'); });
+
+})();
+</script>
+</body>
+</html>
